@@ -1,4 +1,4 @@
-module github.com/usace/cc-go-sdk
+module github.com/usace-cloud-compute/cc-go-sdk
 
 go 1.22
 
