@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	. "github.com/usace/cc-go-sdk"
+	. "github.com/usace-cloud-compute/cc-go-sdk"
 	//"github.com/usace/filesapi"
 )
 

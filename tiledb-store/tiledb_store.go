@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strconv"
 
-	. "github.com/usace/cc-go-sdk"
+	. "github.com/usace-cloud-compute/cc-go-sdk"
 
 	tiledb "github.com/TileDB-Inc/TileDB-Go"
 )

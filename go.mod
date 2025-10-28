@@ -11,7 +11,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.11
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cast v1.6.0
-	github.com/usace/filesapi v0.0.0-20250320132414-61c781325b9a
 )
 
 require (
@@ -42,6 +41,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-pointer v0.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
+	github.com/usace-cloud-compute/filesapi v0.0.0-20251028183744-20a294ce41f9 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20230525183740-e7c30c78aeb2 // indirect
 	golang.org/x/net v0.27.0 // indirect

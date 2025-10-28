@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
-	filestore "github.com/usace/filesapi"
+	filestore "github.com/usace-cloud-compute/filesapi"
 )
 
 const ()
