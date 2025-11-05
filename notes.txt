@@ -201,6 +201,96 @@ EventStore
 * can dense array use string domain notation?
 
 
+Substitution rules:
+ - on InitPluginManager
+   - calls substitutePathVariables (needs name change to just "substituteThings")
+     - payload manager
+       - performs attribute substitution 
+         - if attr is a string, perform ENV substitution
+         - if attr is a map, recusively call attribute substitution
+         - no other types are affected
+          - this means we DO NOT substitute arrays...but maybe we should?  BUT why?
+       - loop over Inputs
+         - perform path substitution on:
+           - Name
+           - Paths
+           - DataPaths
+       - loop over Outputs
+         - perform path substitution on:
+           - Name
+           - Paths
+           - DataPaths
+     - loop over actions
+       - perform action attribute substitution
+         - ONLY substituting on Payload Manager ATTR and ENV
+       - perform input/output path substitution
+         - Search Action ATTR with fall back to PM ATTR when Action ATTR does not exist
+
+
+
+test:{
+  "asdf": 1234
+  "lkjh": 9876
+}
+
+Changes:
+ - Add substitution to Store Parameters
+ - "basin": "asdf/asdf/${ATTR::test[]}"
+    - basin-asdf :"asdf/asdf/1234"
+    - basin-lkjh :"asdf/asdf/9876"
+
+ - "basin": "asdf/asdf/${ATTR::test['asdf']}"
+
+
+ accept 3 circumstances
+  1) json array
+  2) json object (i.e. map)
+  3) comma separated list
+
+Must be array or map of "primitive" types:
+ - string, int, float, bool, 
+
+if scalar or if array/map with single value
+   - get val from env or attr
+   - create single lines
+   - return
+if array or map of all values
+   - get val as array or map
+   - enumerate values
+   - create array of lines
+   - return  
+
+type SubstitutionTypes interface{
+  int | int8 | int16 | int32 | int64 | float32 | float64 | string | bool
+}
+
+var val SubstitutionTypes
+
+var val []SubstitutionTypes
+
+var val map[string]SubstitutionTypes
+
+or....
+ - getVal (new func) as any
+ - switch 
+
+
+ - getVal
+ - switch val.(type)
+   - case SubstitutionTypes:
+     - one string
+   - case []SubstitutionTypes:
+     - loop...lots of string
+   - case map[string]SubstitutionTypes:
+     - loop lots of strings
+ return strings
+
+
+
+
+
+
+
 
 
 

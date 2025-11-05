@@ -1,0 +1,45 @@
+{
+  "attributes": {
+    "geom": "04",
+    "modelPrefix": "Muncie",
+    "plan": "04"
+  },
+  "stores": [
+    {
+      "name": "FFRD",
+      "store_type": "S3",
+      "profile": "FFRD",
+      "params": {
+        "root": "/model-library/hec-testing"
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "name": "{ATTR::modelPrefix}.p04.tmp.hdf",
+      "paths": {
+        "0": "muncie/simulations/{ENV::CC_EVENT_IDENTIFIER}/hydrology/{ATTR::modelPrefix}.p04.tmp.hdf"
+      },
+      "store_name": "FFRD"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "rasoutput",
+      "paths": {
+        "default": "muncie/test/{ENV::CC_EVENT_IDENTIFIER}/rasoutput.log"
+      },
+      "store_name": "FFRD"
+    }
+  ],
+  "actions": [ 
+    {
+      "stores": null,
+      "inputs": null,
+      "outputs": null,
+      "name": "ras-extract",
+      "type": "extract data from a ras run",
+      "description": "extracting Trinity data"
+    }
+  ]
+}
