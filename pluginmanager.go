@@ -278,6 +278,12 @@ func (pm *PluginManager) substituteVariables() error {
 	//allow env substitution within payload attributes
 	pm.substituteMapVariables(pm.Attributes, false)
 
+	//allow substitution on data store params
+	for _, store := range pm.Stores {
+		pm.substituteMapVariables(store.Parameters, true)
+	}
+
+	//allow substitution on input data source paths and data paths
 	for i, ds := range pm.Inputs {
 		err := pathsSubstitute(&ds, pm.Attributes)
 		if err != nil {
@@ -285,6 +291,8 @@ func (pm *PluginManager) substituteVariables() error {
 		}
 		pm.Inputs[i] = ds
 	}
+
+	//allow substitution on input data source paths and data paths
 	for i, ds := range pm.Outputs {
 		err := pathsSubstitute(&ds, pm.Attributes)
 		if err != nil {
@@ -325,8 +333,7 @@ func (pm *PluginManager) substituteVariables() error {
 	return nil
 }
 
-//---------------------------------------
-
+// ----------------------------------------
 // substitutes map (i.e. payload or action attributes)
 // takes the set of attributes as a param argument to support recursing into attribute maps and arrays
 func (pm *PluginManager) substituteMapVariables(params map[string]any, attrSub bool) {
@@ -348,28 +355,16 @@ func (pm *PluginManager) substituteMapVariables(params map[string]any, attrSub b
 		case map[string]any:
 			pm.substituteMapVariables(val, attrSub)
 		case []string:
-			newslice := []string{}
-			for _, v := range val {
-				//newvals, err := parameterSubstitute("", v, pm.Attributes, attrSub)
-				newvals, err := parameterSubstitute(paramSubInput{
-					TemplateKey:                "",
-					Template:                   v,
-					Attributes:                 pm.Attributes,
-					AllowAttributeSubstitution: attrSub,
-				})
-				if err == nil {
-					for _, v := range newvals {
-						newslice = append(newslice, v)
-					}
-				}
-			}
+			newslice := handleSliceSub(val, pm, attrSub)
+			params[param] = newslice
+		case []any:
+			newslice := handleSliceSub(val, pm, attrSub)
 			params[param] = newslice
 		}
 	}
 }
 
 func pathsSubstitute(ds *DataSource, attr map[string]any) error {
-
 	//handle data source name substitution
 	nameResult, err := parameterSubstitute(paramSubInput{
 		TemplateKey:                "name", //this is the data source name, so we will not allow inflating into multiple paths.  key doesn't matter here
@@ -401,6 +396,7 @@ func pathsSubstitute(ds *DataSource, attr map[string]any) error {
 		maps.Copy(ds.Paths, paths)
 	}
 
+	//handle data source data paths substitution
 	for k, p := range ds.DataPaths {
 		paths, err := parameterSubstitute(paramSubInput{
 			TemplateKey:                k,
@@ -416,6 +412,24 @@ func pathsSubstitute(ds *DataSource, attr map[string]any) error {
 	}
 
 	return nil
+}
+
+func handleSliceSub[T any](val []T, pm *PluginManager, attrSub bool) []string {
+	newslice := []string{}
+	for _, v := range val {
+		newvals, err := parameterSubstitute(paramSubInput{
+			TemplateKey:                "",
+			Template:                   fmt.Sprintf("%v", v),
+			Attributes:                 pm.Attributes,
+			AllowAttributeSubstitution: attrSub,
+		})
+		if err == nil {
+			for _, v := range newvals {
+				newslice = append(newslice, v)
+			}
+		}
+	}
+	return newslice
 }
 
 type EmbeddedVar struct {
@@ -546,22 +560,6 @@ func getSubstitutionVal(evar EmbeddedVar, payloadAttr map[string]any) (any, erro
 	return returnval, nil
 }
 
-func templateVarSubstitution(template string, templateVars map[string]string) string {
-	result := substitutionRegex.FindAllStringSubmatch(template, -1)
-	for _, match := range result {
-		sub := strings.Split(match[1], "::")
-		if len(sub) != 2 {
-			continue
-		}
-		if sub[0] == "VAR" {
-			if val, ok := templateVars[sub[1]]; ok {
-				template = strings.Replace(template, match[0], val, 1)
-			}
-		}
-	}
-	return template
-}
-
 func matchToEmbeddedVars(match []string) EmbeddedVar {
 
 	ev := EmbeddedVar{
@@ -592,4 +590,20 @@ func matchToEmbeddedVars(match []string) EmbeddedVar {
 		ev.MapIndex = match[6]
 	}
 	return ev
+}
+
+func templateVarSubstitution(template string, templateVars map[string]string) string {
+	result := substitutionRegex.FindAllStringSubmatch(template, -1)
+	for _, match := range result {
+		sub := strings.Split(match[1], "::")
+		if len(sub) != 2 {
+			continue
+		}
+		if sub[0] == "VAR" {
+			if val, ok := templateVars[sub[1]]; ok {
+				template = strings.Replace(template, match[0], val, 1)
+			}
+		}
+	}
+	return template
 }
