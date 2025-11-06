@@ -1,7 +1,6 @@
 package cc
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"maps"
@@ -31,6 +30,8 @@ const (
 	AwsS3DisableSSL     = "S3_DISABLE_SSL"
 	AwsS3Endpoint       = "AWS_ENDPOINT"
 	FsbRootPath         = "FSB_ROOT_PATH"
+	ParmamSubEnv        = "ENV"
+	ParamSubAttr        = "ATTR"
 )
 
 //var substitutionRegexPattern string = `{([^{}]*)}`
@@ -324,30 +325,6 @@ func (pm *PluginManager) substituteVariables() error {
 	return nil
 }
 
-// substitutes map (i.e. payload or action attributes)
-// takes the set of attributes as a param argument to support recursing into attribute maps and arrays
-// func (pm *PluginManager) substituteMapVariables(params map[string]any, attrSub bool) {
-// 	for param, valAny := range params {
-// 		switch val := valAny.(type) {
-// 		case string:
-// 			newval, err := parameterSubstitute(val, pm.Attributes, attrSub)
-// 			if err == nil {
-// 				params[param] = newval
-// 			}
-// 		case map[string]any:
-// 			pm.substituteMapVariables(val, attrSub)
-// 		case []string:
-// 			for i, v := range val {
-// 				newval, err := parameterSubstitute(v, pm.Attributes, attrSub)
-// 				if err == nil {
-// 					val[i] = newval
-// 				}
-// 			}
-// 		}
-
-// 	}
-// }
-
 //---------------------------------------
 
 // substitutes map (i.e. payload or action attributes)
@@ -356,7 +333,12 @@ func (pm *PluginManager) substituteMapVariables(params map[string]any, attrSub b
 	for param, valAny := range params {
 		switch val := valAny.(type) {
 		case string:
-			newvals, err := parameterSubstituteNT(param, val, pm.Attributes, attrSub)
+			newvals, err := parameterSubstitute(paramSubInput{
+				TemplateKey:                param,
+				Template:                   val,
+				Attributes:                 pm.Attributes,
+				AllowAttributeSubstitution: attrSub,
+			})
 			if err == nil {
 				delete(params, param)
 				for k, v := range newvals {
@@ -368,7 +350,13 @@ func (pm *PluginManager) substituteMapVariables(params map[string]any, attrSub b
 		case []string:
 			newslice := []string{}
 			for _, v := range val {
-				newvals, err := parameterSubstituteNT("", v, pm.Attributes, attrSub)
+				//newvals, err := parameterSubstitute("", v, pm.Attributes, attrSub)
+				newvals, err := parameterSubstitute(paramSubInput{
+					TemplateKey:                "",
+					Template:                   v,
+					Attributes:                 pm.Attributes,
+					AllowAttributeSubstitution: attrSub,
+				})
 				if err == nil {
 					for _, v := range newvals {
 						newslice = append(newslice, v)
@@ -380,15 +368,32 @@ func (pm *PluginManager) substituteMapVariables(params map[string]any, attrSub b
 	}
 }
 
-func pathsSubstitute(ds *DataSource, payloadAttr map[string]any) error {
-	name, err := parameterSubstitute(ds.Name, payloadAttr, true)
+func pathsSubstitute(ds *DataSource, attr map[string]any) error {
+
+	//handle data source name substitution
+	nameResult, err := parameterSubstitute(paramSubInput{
+		TemplateKey:                "name", //this is the data source name, so we will not allow inflating into multiple paths.  key doesn't matter here
+		Template:                   ds.Name,
+		Attributes:                 attr,
+		AllowAttributeSubstitution: true,
+	})
 	if err != nil {
 		return err
 	}
-	ds.Name = name
+	if nameout, ok := nameResult["name"]; ok {
+		ds.Name = nameout
+	} else {
+		return fmt.Errorf("invalid data source name substitution for %s", ds.Name)
+	}
 
+	//handle data source paths substitution
 	for k, p := range ds.Paths {
-		paths, err := parameterSubstituteNT(k, p, payloadAttr, true)
+		paths, err := parameterSubstitute(paramSubInput{
+			TemplateKey:                k,
+			Template:                   p,
+			Attributes:                 attr,
+			AllowAttributeSubstitution: true,
+		})
 		if err != nil {
 			return err
 		}
@@ -397,7 +402,12 @@ func pathsSubstitute(ds *DataSource, payloadAttr map[string]any) error {
 	}
 
 	for k, p := range ds.DataPaths {
-		paths, err := parameterSubstituteNT(k, p, payloadAttr, true)
+		paths, err := parameterSubstitute(paramSubInput{
+			TemplateKey:                k,
+			Template:                   p,
+			Attributes:                 attr,
+			AllowAttributeSubstitution: true,
+		})
 		if err != nil {
 			return err
 		}
@@ -416,95 +426,107 @@ type EmbeddedVar struct {
 	MapIndex     string
 }
 
+//func handleSubstitution()
+
+type paramSubInput struct {
+	TemplateKey                string
+	Template                   string
+	Attributes                 map[string]any
+	AllowAttributeSubstitution bool
+}
+
 // @TODO how to handle case when array values are not annotated as arrays?  should concat!
-func parameterSubstituteNT(paramkey string, param any, payloadAttr map[string]any, attrSub bool) (map[string]string, error) {
-	switch template := param.(type) {
-	case string:
-		output := map[string]string{
-			paramkey: template,
-		}
-		result := substitutionRegex.FindAllStringSubmatch(template, -1)
-		for _, match := range result {
-			eVars := matchToEmbeddedVars(match)
-			val, err := getSubstitutionVal(eVars, payloadAttr)
-			vof := reflect.ValueOf(val)
-			switch vof.Kind() {
-			case reflect.String:
-				for outputkey, outputline := range output {
-					output[outputkey] = strings.Replace(outputline, match[0], val.(string), -1)
-				}
-			case reflect.Slice:
-				//-1 -> inflate the entire array into the parameter
-				if eVars.ArrayIndex == -1 && eVars.IsArrayOrMap {
-					newoutput := make(map[string]string)
-					for outputkey, outputline := range output {
-						for i := 0; i < vof.Len(); i++ {
-							element := vof.Index(i)
-							strval := fmt.Sprintf("%v", element.Interface())
-							newoutput[outputkey+"-"+strval] = strings.Replace(outputline, match[0], strval, -1)
-						}
-					}
-					output = newoutput
+func parameterSubstitute(input paramSubInput) (map[string]string, error) {
 
-					//have an index.  substitute on the index
-				} else if eVars.ArrayIndex > -1 && eVars.IsArrayOrMap {
-					for outputkey, outputline := range output {
-						element := vof.Index(eVars.ArrayIndex)
-						strval := fmt.Sprintf("%v", element.Interface())
-						output[outputkey] = strings.Replace(outputline, match[0], strval, -1)
-					}
-
-					//have a slice but the user referenced the var without array semantics
-					//concatonate the slice into csv and substitute the csv string
-				} else {
-					//concat slice into csv and treat as string
-					for outputkey, outputline := range output {
-						builder := strings.Builder{}
-						for i := 0; i < vof.Len(); i++ {
-							if i > 0 {
-								builder.WriteString(",")
-							}
-							element := vof.Index(i)
-							strval := fmt.Sprintf("%v", element.Interface())
-							builder.WriteString(strval)
-						}
-						output[outputkey] = strings.Replace(outputline, match[0], builder.String(), -1)
-					}
-				}
-			case reflect.Map:
-				//no map index, so inflate the entire map into the parameter
-				if eVars.MapIndex == "" && eVars.IsArrayOrMap {
-					newoutput := make(map[string]string)
-					for outputkey, outputline := range output {
-						for _, key := range vof.MapKeys() {
-							element := vof.MapIndex(key)
-							strval := fmt.Sprintf("%v", element.Interface())
-							newoutput[outputkey+"-"+strval] = strings.Replace(outputline, match[0], strval, -1)
-						}
-					}
-					output = newoutput
-
-					//have a map index, so get the map value and substitute
-				} else {
-					for outputkey, outputline := range output {
-						element := vof.MapIndex(reflect.ValueOf(eVars.MapIndex))
-						strval := fmt.Sprintf("%v", element.Interface())
-						output[outputkey] = strings.Replace(outputline, match[0], strval, -1)
-					}
-				}
-			default:
-				valstring := fmt.Sprintf("%v", val)
-				template = strings.Replace(template, match[0], valstring, 1)
-			}
-			if err != nil {
-				return nil, err
-			}
-		}
-		return output, nil
-	default:
-		return nil, errors.New("invalid parameter type")
+	//create a map for expanding the template into our output
+	output := map[string]string{
+		input.TemplateKey: input.Template,
 	}
-	return nil, nil
+
+	result := substitutionRegex.FindAllStringSubmatch(input.Template, -1)
+	for _, match := range result {
+		eVars := matchToEmbeddedVars(match)
+		if eVars.Type == ParamSubAttr && !input.AllowAttributeSubstitution {
+			//skip
+			continue
+		}
+		val, err := getSubstitutionVal(eVars, input.Attributes)
+		vof := reflect.ValueOf(val)
+		switch vof.Kind() {
+		case reflect.String:
+			for outputkey, outputline := range output {
+				output[outputkey] = strings.Replace(outputline, match[0], val.(string), -1)
+			}
+		case reflect.Slice:
+			//-1 -> inflate the entire array into the parameter
+			if eVars.ArrayIndex == -1 && eVars.IsArrayOrMap {
+				newoutput := make(map[string]string)
+				for outputkey, outputline := range output {
+					for i := 0; i < vof.Len(); i++ {
+						element := vof.Index(i)
+						strval := fmt.Sprintf("%v", element.Interface())
+						newoutput[outputkey+"-"+strval] = strings.Replace(outputline, match[0], strval, -1)
+					}
+				}
+				output = newoutput
+
+				//have an index.  substitute on the index
+			} else if eVars.ArrayIndex > -1 && eVars.IsArrayOrMap {
+				for outputkey, outputline := range output {
+					element := vof.Index(eVars.ArrayIndex)
+					strval := fmt.Sprintf("%v", element.Interface())
+					output[outputkey] = strings.Replace(outputline, match[0], strval, -1)
+				}
+
+				//have a slice but the user referenced the var without array semantics
+				//concatonate the slice into csv and substitute the csv string
+			} else {
+				//concat slice into csv and treat as string
+				for outputkey, outputline := range output {
+					builder := strings.Builder{}
+					for i := 0; i < vof.Len(); i++ {
+						if i > 0 {
+							builder.WriteString(",")
+						}
+						element := vof.Index(i)
+						strval := fmt.Sprintf("%v", element.Interface())
+						builder.WriteString(strval)
+					}
+					output[outputkey] = strings.Replace(outputline, match[0], builder.String(), -1)
+				}
+			}
+		case reflect.Map:
+			//no map index, so inflate the entire map into the parameter
+			if eVars.MapIndex == "" && eVars.IsArrayOrMap {
+				newoutput := make(map[string]string)
+				for outputkey, outputline := range output {
+					for _, key := range vof.MapKeys() {
+						element := vof.MapIndex(key)
+						strval := fmt.Sprintf("%v", element.Interface())
+						newoutput[outputkey+"-"+strval] = strings.Replace(outputline, match[0], strval, -1)
+					}
+				}
+				output = newoutput
+
+				//have a map index, so get the map value and substitute
+			} else {
+				for outputkey, outputline := range output {
+					element := vof.MapIndex(reflect.ValueOf(eVars.MapIndex))
+					strval := fmt.Sprintf("%v", element.Interface())
+					output[outputkey] = strings.Replace(outputline, match[0], strval, -1)
+				}
+			}
+		default:
+			//handle same as a string, but coerce values to a string
+			for outputkey, outputline := range output {
+				output[outputkey] = strings.Replace(outputline, match[0], fmt.Sprintf("%v", val), -1)
+			}
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	return output, nil
 }
 
 func getSubstitutionVal(evar EmbeddedVar, payloadAttr map[string]any) (any, error) {
@@ -522,79 +544,6 @@ func getSubstitutionVal(evar EmbeddedVar, payloadAttr map[string]any) (any, erro
 		returnval = val
 	}
 	return returnval, nil
-}
-
-// func parseEmbeddedVars(s string) []EmbeddedVar {
-// 	matches := substitutionRegex.FindAllStringSubmatch(s, -1)
-// 	out := make([]EmbeddedVar, 0, len(matches))
-
-// 	for _, m := range matches {
-// 		ev := EmbeddedVar{
-// 			Type:       m[1],
-// 			Varname:    m[2],
-// 			ArrayIndex: -1,
-// 		}
-
-// 		// If any of groups 3..6 matched, it's an array/map reference.
-// 		switch {
-// 		case m[3] != "":
-// 			// matched [] (empty index)
-// 			ev.IsArrayOrMap = true
-// 		case m[4] != "":
-// 			// matched [0] numeric array index
-// 			ev.IsArrayOrMap = true
-// 			i, err := strconv.Atoi(m[4])
-// 			if err == nil {
-// 				ev.ArrayIndex = i
-// 			}
-// 		case m[5] != "":
-// 			// matched ['key'] single-quoted map key
-// 			ev.IsArrayOrMap = true
-// 			ev.MapIndex = m[5]
-// 		case m[6] != "":
-// 			// matched ["key"] double-quoted map key
-// 			ev.IsArrayOrMap = true
-// 			ev.MapIndex = m[6]
-// 		}
-
-// 		out = append(out, ev)
-// 	}
-// 	return out
-// }
-
-//---------------------------------------------
-
-func parameterSubstitute(param any, payloadAttr map[string]any, attrSub bool) (string, error) {
-	switch template := param.(type) {
-	case string:
-		result := substitutionRegex.FindAllStringSubmatch(template, -1)
-		for _, match := range result {
-			// sub := strings.Split(match[1], "::")
-			// if len(sub) != 2 {
-			// 	return "", fmt.Errorf("invalid data source substitution: %s", match[0])
-			// }
-			val := ""
-			switch {
-			case match[1] == "ENV":
-				val = os.Getenv(match[2])
-				if val == "" {
-					return "", fmt.Errorf("invalid data source substitution.  missing environment parameter: %s", match[0])
-				}
-			case match[1] == "ATTR" && attrSub:
-				val2, ok := payloadAttr[match[2]]
-				if !ok {
-					return "", fmt.Errorf("invalid data source substitution.  missing payload parameter: %s", match[0])
-				}
-				val = fmt.Sprintf("%v", val2) //need to coerce non-string values into strings.  for example ints might be perfectly valid for parameter substitution in a url
-			default:
-				continue //if its not ENV or ATTR, skip the substitution
-			}
-			template = strings.Replace(template, match[0], val, 1)
-		}
-		return template, nil
-	default:
-		return "", errors.New("invalid parameter type")
-	}
 }
 
 func templateVarSubstitution(template string, templateVars map[string]string) string {
