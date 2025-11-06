@@ -292,9 +292,9 @@ func (im *IOManager) Copy(src DataSourceOpInput, dest DataSourceOpInput) error {
 			_, err = destwriter.Put(reader, destpath, destdatapath)
 			return err
 		}
-		return fmt.Errorf("Destination Data Store %s session does not implement a StoreWriter", srcstore.Name)
+		return fmt.Errorf("destination data store %s session does not implement a storewriter", srcstore.Name)
 	}
-	return fmt.Errorf("Source Data Store %s session does not implement a StoreReader", srcstore.Name)
+	return fmt.Errorf("source data store %s session does not implement a storereader", srcstore.Name)
 }
 
 func (im *IOManager) CopyFileToLocal(dsName string, pathkey string, dataPathKey string, localPath string) error {
@@ -331,7 +331,7 @@ func (im *IOManager) CopyFileToLocal(dsName string, pathkey string, dataPathKey 
 
 	}
 
-	return fmt.Errorf("Data Store %s session does not implement a StoreReader", store.Name)
+	return fmt.Errorf("data store %s session does not implement a storereader", store.Name)
 }
 
 type CopyFileToRemoteInput struct {
