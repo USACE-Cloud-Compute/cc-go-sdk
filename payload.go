@@ -356,8 +356,17 @@ func copyToLocal(fs filesapi.FileStore, remoteAbsolutePath string, localPath str
 	return err
 }
 
+//	 the CopyFileToRemoteInput supports two possible configs
+//	  1: using a store directly. add the following to the config:
+//	     - RemoteStoreName
+//		 - RemotePath //relative path from the store root to the resource
+//		 - LocalPath //local path to copy
+//	  2: using a DataSource.  Add the following to the config:
+//	     - RemoteDsName: name of the remote data source you are copying to
+//		 - DsPathKey: the datasource path key
+//		 - DsDataPathKey: (optional) data path key if necessary
 type CopyFileToRemoteInput struct {
-	RemoteStoreName string
+	RemoteStoreName string //optional store name
 	RemotePath      string
 	LocalPath       string
 	RemoteDsName    string
