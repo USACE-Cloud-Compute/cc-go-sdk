@@ -4,7 +4,7 @@ go 1.22
 
 toolchain go1.23.4
 
-replace github.com/usace-cloud-compute/filesapi => /workspaces/filesapi
+//replace github.com/usace-cloud-compute/filesapi => /workspaces/filesapi
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.3
@@ -41,7 +41,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-pointer v0.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/usace-cloud-compute/filesapi v0.0.0-20251028183744-20a294ce41f9 // indirect
+	github.com/usace-cloud-compute/filesapi v0.0.0-20251107191432-8084e0da4b5c // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20230525183740-e7c30c78aeb2 // indirect
 	golang.org/x/net v0.27.0 // indirect
