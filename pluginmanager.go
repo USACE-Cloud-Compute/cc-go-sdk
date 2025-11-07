@@ -414,19 +414,23 @@ func pathsSubstitute(ds *DataSource, attr map[string]any) error {
 	return nil
 }
 
-func handleSliceSub[T any](val []T, pm *PluginManager, attrSub bool) []string {
-	newslice := []string{}
+func handleSliceSub[T any](val []T, pm *PluginManager, attrSub bool) []any {
+	newslice := []any{}
 	for _, v := range val {
-		newvals, err := parameterSubstitute(paramSubInput{
-			TemplateKey:                "",
-			Template:                   fmt.Sprintf("%v", v),
-			Attributes:                 pm.Attributes,
-			AllowAttributeSubstitution: attrSub,
-		})
-		if err == nil {
-			for _, v := range newvals {
-				newslice = append(newslice, v)
+		if stringv, ok := any(v).(string); ok {
+			newvals, err := parameterSubstitute(paramSubInput{
+				TemplateKey:                "",
+				Template:                   stringv,
+				Attributes:                 pm.Attributes,
+				AllowAttributeSubstitution: attrSub,
+			})
+			if err == nil {
+				for _, v := range newvals {
+					newslice = append(newslice, v)
+				}
 			}
+		} else {
+			newslice = append(newslice, v)
 		}
 	}
 	return newslice

@@ -36,7 +36,7 @@ func (p PayloadAttributes) GetIntOrDefault(name string, defaultValue int) int {
 func (p PayloadAttributes) GetIntSlice(name string) ([]int, error) {
 	vals, ok := p[name]
 	if !ok {
-		return nil, fmt.Errorf("Invalid value for %s\n", name)
+		return nil, fmt.Errorf("invalid value for %s", name)
 	}
 
 	floatVals := Slice2Type[float64](vals.([]any))
@@ -74,7 +74,7 @@ func (p PayloadAttributes) GetFloatOrDefault(name string, defaultValue float64) 
 func (p PayloadAttributes) GetFloatSlice(name string) ([]float64, error) {
 	vals, ok := p[name]
 	if !ok {
-		return nil, fmt.Errorf("Invalid value for %s\n", name)
+		return nil, fmt.Errorf("invalid value for %s", name)
 	}
 	return Slice2Type[float64](vals.([]any)), nil
 }
@@ -86,7 +86,7 @@ func (p PayloadAttributes) GetString(name string) (string, error) {
 func (p PayloadAttributes) GetStringSlice(name string) ([]string, error) {
 	vals, ok := p[name]
 	if !ok {
-		return nil, fmt.Errorf("Invalid value for %s\n", name)
+		return nil, fmt.Errorf("invalid value for %s", name)
 	}
 	return Slice2Type[string](vals.([]any)), nil
 }
@@ -130,7 +130,7 @@ type PayloadAttributeTypes interface {
 func GetOrFail[T PayloadAttributeTypes](pa PayloadAttributes, attr string) T {
 	val, err := GetAttribute[T](pa, attr)
 	if err != nil {
-		log.Fatalf("Invalid value for %v\n", err)
+		log.Fatalf("invalid value for %v", err)
 	}
 	return val
 }
