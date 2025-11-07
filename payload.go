@@ -2,7 +2,6 @@ package cc
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -299,25 +298,6 @@ func (im *IOManager) Copy(src DataSourceOpInput, dest DataSourceOpInput) error {
 	return fmt.Errorf("source data store %s session does not implement a storereader", srcstore.Name)
 }
 
-/*
- ------------------------------
- - get data source
- - get data store
- - is store a storereader
-   - create writer at local path
-   - copy
- -------------------------------
-
- -------------------------------
- - get data source
- - get data store
- - is store session a FileDataStore
-   - get filesapi session "GetFilestore()""
-     - call list dir
-	   - copy everything returned from list dir
-
-*/
-
 type CopyToLocalInput struct {
 	DsName    string
 	PathKey   string
@@ -357,16 +337,16 @@ func (im *IOManager) CopyFileToLocal(input CopyToLocalInput) error {
 	}
 }
 
-func copyToLocal(fs filesapi.FileStore, absolutePath string, localPath string) error {
+func copyToLocal(fs filesapi.FileStore, remoteAbsolutePath string, localPath string) error {
 	reader, err := fs.GetObject(filesapi.GetObjectInput{
-		Path: filesapi.PathConfig{Path: absolutePath},
+		Path: filesapi.PathConfig{Path: remoteAbsolutePath},
 	})
 	if err != nil {
 		return err
 	}
 	defer reader.Close()
 
-	localfile := fmt.Sprintf("%s/%s", localPath, filepath.Base(absolutePath))
+	localfile := fmt.Sprintf("%s/%s", localPath, filepath.Base(remoteAbsolutePath))
 	writer, err := os.Create(localfile)
 	if err != nil {
 		return err
@@ -375,43 +355,6 @@ func copyToLocal(fs filesapi.FileStore, absolutePath string, localPath string) e
 	_, err = io.Copy(writer, reader)
 	return err
 }
-
-// func (im *IOManager) CopyFileToLocal(dsName string, pathkey string, dataPathKey string, localPath string) error {
-// 	ds, err := im.GetDataSource(GetDsInput{DataSourceInput, dsName})
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	store, err := im.GetStore(ds.StoreName)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	path := ds.Paths[pathkey]
-// 	datapath := ""
-// 	if dataPathKey != "" {
-// 		datapath = ds.DataPaths[dataPathKey]
-// 	}
-
-// 	if storeReader, ok := store.Session.(StoreReader); ok {
-// 		reader, err := storeReader.Get(path, datapath)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		defer reader.Close()
-
-// 		writer, err := os.Create(localPath)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		defer writer.Close()
-// 		_, err = io.Copy(writer, reader)
-// 		return err
-
-// 	}
-
-// 	return fmt.Errorf("data store %s session does not implement a storereader", store.Name)
-// }
 
 type CopyFileToRemoteInput struct {
 	RemoteStoreName string
@@ -425,7 +368,6 @@ type CopyFileToRemoteInput struct {
 func (im *IOManager) CopyFileToRemote(input CopyFileToRemoteInput) error {
 	storeName := input.RemoteStoreName
 	path := input.RemotePath
-	datapath := ""
 	if storeName == "" {
 		//get store name from datasource and use datasource semantics
 		ds, err := im.GetDataSource(GetDsInput{DataSourceOutput, input.RemoteDsName})
@@ -434,9 +376,6 @@ func (im *IOManager) CopyFileToRemote(input CopyFileToRemoteInput) error {
 		}
 		storeName = ds.StoreName
 		path = ds.Paths[input.DsPathKey]
-		if input.DsDataPathKey != "" {
-			datapath = ds.DataPaths[input.DsDataPathKey]
-		}
 
 	}
 
@@ -445,17 +384,53 @@ func (im *IOManager) CopyFileToRemote(input CopyFileToRemoteInput) error {
 		return err
 	}
 
-	if writer, ok := store.Session.(StoreWriter); ok {
-		reader, err := os.Open(input.LocalPath)
-		if err != nil {
+	info, err := os.Stat(input.LocalPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Printf("Path '%s' does not exist.\n", path)
 			return err
 		}
-
-		_, err = writer.Put(reader, path, datapath)
+		fmt.Printf("Error getting file info for '%s': %v\n", path, err)
 		return err
 	}
 
-	return fmt.Errorf("Data Store %s session does not implement a StoreWriter", store.Name)
+	if ifds, ok := store.Session.(FileDataStoreInterface); ok {
+		fullRemotePath := ifds.GetAbsolutePath(path)
+		fs := ifds.GetFilestore()
+		if info.IsDir() {
+			localFs, err := filesapi.NewFileStore(filesapi.BlockFSConfig{})
+			if err != nil {
+				return err
+			}
+			localFs.Walk(filesapi.WalkInput{
+				Path: filesapi.PathConfig{Path: input.LocalPath},
+			}, func(path string, file os.FileInfo) error {
+				if !file.IsDir() {
+					fullRemoteFilePath := fmt.Sprintf("%s/%s", fullRemotePath, filepath.Base(path))
+					return writeFileToRemote(fs, path, fullRemoteFilePath)
+				}
+				return nil
+			})
+		} else {
+			return writeFileToRemote(fs, input.LocalPath, fullRemotePath)
+		}
+	}
+	return nil
+}
+
+func writeFileToRemote(fs filesapi.FileStore, localPath string, remoteAbsolutePath string) error {
+	reader, err := os.Open(localPath)
+	if err != nil {
+		return err
+	}
+
+	_, err = fs.PutObject(filesapi.PutObjectInput{
+		Source: filesapi.ObjectSource{
+			Reader: reader,
+		},
+		Dest: filesapi.PathConfig{Path: remoteAbsolutePath},
+	})
+	return err
 }
 
 func GetStoreAs[T any](mgr *IOManager, name string) (T, error) {
@@ -464,10 +439,10 @@ func GetStoreAs[T any](mgr *IOManager, name string) (T, error) {
 			if t, ok := s.Session.(T); ok {
 				return t, nil
 			} else {
-				return t, errors.New("Invalid Store Type")
+				return t, fmt.Errorf("invalid store type: %s", s.StoreType)
 			}
 		}
 	}
 	var t T
-	return t, errors.New(fmt.Sprintf("Session %s does not exist.\n", name))
+	return t, fmt.Errorf("session %s does not exist", name)
 }
