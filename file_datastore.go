@@ -16,16 +16,28 @@ type FileDataStoreTypes interface {
 	filestore.BlockFS | filestore.S3FS
 }
 
+type FileDataStoreInterface interface {
+	Get(path string, datapath string) (io.ReadCloser, error)
+	GetFilestore() filestore.FileStore
+	Put(reader io.Reader, path string, destDataPath string) (int, error)
+	//Delete(path string)
+	GetSession() any
+	GetAbsolutePath(path string) string
+}
+
 type FileDataStore[T FileDataStoreTypes] struct {
 	fs   filestore.FileStore
 	root string
+}
+
+func (fds *FileDataStore[T]) GetAbsolutePath(path string) string {
+	return fmt.Sprintf("%s/%s", fds.root, path)
 }
 
 func (fds *FileDataStore[T]) Get(path string, datapath string) (io.ReadCloser, error) {
 	fsgoi := filestore.GetObjectInput{
 		Path: filestore.PathConfig{Path: fds.root + "/" + path},
 	}
-
 	return fds.fs.GetObject(fsgoi)
 }
 
@@ -46,9 +58,9 @@ func (fds *FileDataStore[T]) Put(reader io.Reader, path string, destDataPath str
 	return -1, err
 }
 
-func (fds *FileDataStore[T]) Delete(path string) error {
-	return fds.Delete(fds.root + "/" + path) //@TODO...for real?  Does this even work?
-}
+// func (fds *FileDataStore[T]) Delete(path string) error {
+// 	return fds.Delete(fds.root + "/" + path) //@TODO...for real?  Does this even work?
+// }
 
 func (fds *FileDataStore[T]) GetSession() any {
 	switch v := any(fds.fs).(type) {

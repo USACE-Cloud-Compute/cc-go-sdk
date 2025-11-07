@@ -262,8 +262,8 @@ func (pm PluginManager) Copy(src DataSourceOpInput, dest DataSourceOpInput) erro
 	return pm.IOManager.Copy(src, dest)
 }
 
-func (pm PluginManager) CopyFileToLocal(dsName string, pathkey string, dataPathKey string, localPath string) error {
-	return pm.IOManager.CopyFileToLocal(dsName, pathkey, dataPathKey, localPath)
+func (pm PluginManager) CopyFileToLocal(input CopyToLocalInput) error {
+	return pm.IOManager.CopyFileToLocal(input)
 }
 
 func (pm PluginManager) CopyFileToRemote(input CopyFileToRemoteInput) error {
