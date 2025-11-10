@@ -622,12 +622,8 @@ func matchToEmbeddedVars(match []string) EmbeddedVar {
 func templateVarSubstitution(template string, templateVars map[string]string) string {
 	result := substitutionRegex.FindAllStringSubmatch(template, -1)
 	for _, match := range result {
-		sub := strings.Split(match[1], "::")
-		if len(sub) != 2 {
-			continue
-		}
-		if sub[0] == "VAR" {
-			if val, ok := templateVars[sub[1]]; ok {
+		if match[1] == "VAR" {
+			if val, ok := templateVars[match[2]]; ok {
 				template = strings.Replace(template, match[0], val, 1)
 			}
 		}
