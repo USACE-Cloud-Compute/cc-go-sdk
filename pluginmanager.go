@@ -53,6 +53,11 @@ var substitutionRegex = regexp.MustCompile(
 		`)?\}`,
 )
 
+var validAutoSubstitution map[string]struct{} = map[string]struct{}{
+	"ATTR": struct{}{},
+	"ENV":  struct{}{},
+}
+
 var maxretry int = 100
 
 type NamedAction interface {
@@ -469,11 +474,22 @@ func parameterSubstitute(input paramSubInput) (map[string]string, error) {
 	result := substitutionRegex.FindAllStringSubmatch(input.Template, -1)
 	for _, match := range result {
 		eVars := matchToEmbeddedVars(match)
+
+		//if this is not an auto sub value, then skip
+		if _, ok := validAutoSubstitution[eVars.Type]; !ok {
+			//skip
+			continue
+		}
+
+		//if this is a disallowed ATTR substitution then skip (e.g. ATTR sub in the payload attributes)
 		if eVars.Type == ParamSubAttr && !input.AllowAttributeSubstitution {
 			//skip
 			continue
 		}
 		val, err := getSubstitutionVal(eVars, input.Attributes)
+		if err != nil {
+			return nil, err
+		}
 		vof := reflect.ValueOf(val)
 		switch vof.Kind() {
 		case reflect.String:
