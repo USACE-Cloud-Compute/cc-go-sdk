@@ -197,11 +197,9 @@ func (im *IOManager) GetReader(input DataSourceOpInput) (io.ReadCloser, error) {
 	}
 	if readerStore, ok := dataStore.Session.(StoreReader); ok {
 		path := dataSource.Paths[input.PathKey]
-		//
 		if len(input.TemplateVars) > 0 {
 			path = templateVarSubstitution(path, input.TemplateVars)
 		}
-		//
 		datapath := ""
 		if input.DataPathKey != "" {
 			datapath = dataSource.DataPaths[input.DataPathKey]
@@ -223,9 +221,14 @@ func (im *IOManager) Get(input DataSourceOpInput) ([]byte, error) {
 }
 
 func (im *IOManager) Put(input PutOpInput) (int, error) {
-	ds, err := im.GetOutputDataSource(input.DataSourceName)
-	if err != nil {
-		return 0, err
+	var err error
+	var ds DataSource
+
+	if input.DataSource == nil {
+		ds, err = im.GetOutputDataSource(input.DataSourceName)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	store, err := im.GetStore(ds.StoreName)
@@ -235,6 +238,9 @@ func (im *IOManager) Put(input PutOpInput) (int, error) {
 
 	if writer, ok := store.Session.(StoreWriter); ok {
 		if path, ok := ds.Paths[input.PathKey]; ok {
+			if len(input.TemplateVars) > 0 {
+				path = templateVarSubstitution(path, input.TemplateVars)
+			}
 			datapath := ""
 			if input.DataPathKey != "" {
 				var dpok bool

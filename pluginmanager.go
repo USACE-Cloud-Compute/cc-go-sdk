@@ -53,9 +53,11 @@ var substitutionRegex = regexp.MustCompile(
 		`)?\}`,
 )
 
+// use a map to declare the set of substitutions variables that will be substituted automatically
+// when the pluginmanager is initialized
 var validAutoSubstitution map[string]struct{} = map[string]struct{}{
-	"ATTR": struct{}{},
-	"ENV":  struct{}{},
+	"ATTR": {},
+	"ENV":  {},
 }
 
 var maxretry int = 100
