@@ -160,6 +160,12 @@ func InitPluginManager() (*PluginManager, error) {
 	manager.IOManager = payload.IOManager //@TODO do I absolutely need these two lines?
 	manager.Actions = payload.Actions
 
+	//perform payload variable substitution
+	err = manager.substituteVariables()
+	if err != nil {
+		return nil, err
+	}
+
 	//make connections to the plugin manager stores
 	err = connectStores(&manager.Stores)
 	if err != nil {
@@ -179,7 +185,6 @@ func InitPluginManager() (*PluginManager, error) {
 		}
 	}
 
-	err = manager.substituteVariables()
 	return &manager, err
 }
 
