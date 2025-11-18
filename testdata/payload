@@ -1,45 +1,201 @@
 {
   "attributes": {
-    "geom": "04",
+    "event_array": "array1", 
+    "dir1": "/mydata/dir1",
+    "scenario": "conformance",
+    "outputroot": "simulations",
     "modelPrefix": "Muncie",
-    "plan": "04"
+    "plan": "04",
+    "testarray": [1,2,3,4],
+    "teststringarray": ["9","8","7","6"],
+    "testnumberarray":[9.9,8.8,7.7,6.6],
+    "testboolarray": [true,false,true,false],
+    "testnumber": 999.8888,
+    "testint": 99,
+    "testbool": true,
+    "testobject": {
+      "key1" : "val1",
+      "key2" : 999.99
+    },
+    "testAttrSubstitute":"987654",
+    "widget":[
+      "widget1",
+      "widget2",
+      "widget9",
+      "widget10"
+    ],
+    "fruit":{
+      "tropical":[
+        "orange-{ENV::CC_EVENT_IDENTIFIER[0]}",
+        "bananna"
+      ],
+      "apple1":"gala",
+      "apple2":"honeycrisp"
+    },
+    "colors":{
+        "bold":{
+          "red1":"red-{ENV::CC_EVENT_IDENTIFIER[]}"
+        }
+    },
+    "basins":{
+     "1": "basin-z",
+     "2": "basin-y"
+    },
+    "plugins": [
+          "fragilitycurveplugin",
+          "hms-mutator",
+          "hms-runner",
+          "ressim-runner",
+          "consequences_white-rock"
+    ],
+    "testz":"testz-{ENV::CC_EVENT_IDENTIFIER}",
+    "testz2":"testz-{ENV::CC_EVENT_IDENTIFIER[2]}"
   },
   "stores": [
+    {
+      "name": "S3STORE",
+      "store_type": "S3",
+      "profile": "S3STORE",
+      "params": {
+        "root": "/model-library/yukon_river"
+      }
+    },
     {
       "name": "FFRD",
       "store_type": "S3",
       "profile": "FFRD",
       "params": {
-        "root": "/model-library/hec-testing"
+        "root": "/model-library/ffrd"
       }
     }
   ],
   "inputs": [
     {
-      "name": "{ATTR::modelPrefix}.p04.tmp.hdf",
+      "name": "widget-paths",
       "paths": {
-        "0": "muncie/simulations/{ENV::CC_EVENT_IDENTIFIER}/hydrology/{ATTR::modelPrefix}.p04.tmp.hdf"
+        "wp": "muncie/simulations/{ATTR::basins[]}/hydrology/{ATTR::plugins[1]}/{ATTR::modelPrefix}.p04.{ATTR::widget[]}.hdf"
       },
       "store_name": "FFRD"
+    },
+    {
+      "name": "{ATTR::modelPrefix}.p04.tmp.{ATTR::plugins[0]}.hdf",
+      "paths": {
+        "0": "muncie/simulations/{ATTR::basins[]}/hydrology/{ATTR::fruit[]}.p04.tmp.hdf",
+        "1": "muncie/simulations/{ATTR::basins[]}/hydrology/{ATTR::basins['1']}.p04.tmp.hdf"
+      },
+      "store_name": "FFRD"
+    },
+    {
+      "name": "{ATTR::modelPrefix}.p04.tmp.hdf",
+      "paths": {
+        "0": "muncie/simulations/{ATTR::basins[]}/hydrology/{ATTR::plan}.p04.tmp.hdf"
+      },
+      "store_name": "FFRD"
+    },
+    {
+      "name": "image1",
+      "paths": {
+       "default":"test.webp"
+      },
+      "store_name": "S3STORE"
+    },
+    {
+      "name": "text1",
+      "paths": {
+       "default":"hw.txt"
+      },
+      "store_name": "S3STORE"
+    },
+    {
+      "name": "test-in1",
+      "paths": {
+       "default":"mockdata.txt"
+      },
+      "store_name": "S3STORE"
+    },
+    {
+      "name": "test3",
+      "paths": {
+       "default":"{ENV::CC_ROOT}/test/{ATTR::testAttrSubstitute}/hwout.txt"
+      },
+      "store_name": "S3STORE"
+    },
+    {
+      "name": "test4",
+      "paths": {
+       "default":"hwout.webp"
+      },
+      "store_name": "S3STORE"
     }
   ],
   "outputs": [
     {
-      "name": "rasoutput",
+      "name": "test-out1",
       "paths": {
-        "default": "muncie/test/{ENV::CC_EVENT_IDENTIFIER}/rasoutput.log"
+       "default":"hwout.webp"
       },
-      "store_name": "FFRD"
+      "store_name": "S3STORE"
+    },
+    {
+      "name": "test-out2",
+      "paths": {
+       "default":"mockdata.txt"
+      },
+      "store_name": "S3STORE"
     }
   ],
-  "actions": [ 
+  "actions": [
     {
-      "stores": null,
-      "inputs": null,
-      "outputs": null,
-      "name": "ras-extract",
-      "type": "extract data from a ras run",
-      "description": "extracting Trinity data"
+        "name": "action1",
+        "type": "action1",
+        "description": "generating seeds by blocks",
+        "attributes": {
+          "myccroot":"{ENV::CC_ROOT}",
+          "block_dataset_name":"blocks",
+          "block_store_type":"eventstore",
+          "seed_dataset_name":"seeds",
+          "seed_store_type":"eventstore",
+          "initial_event_seed": 8855534638979991142,
+          "initial_realization_seed": 8380661580462607644,
+          "plugins": [
+              "fragilitycurveplugin",
+              "hms-mutator",
+              "hms-runner",
+              "ressim-runner"
+          ],
+          "store_type":"json",
+          "OMG-this-is-nuts": "TEST123-{ATTR::plugins[]}",
+          "OMG-this-is-more-nuts":"TEST123-{ATTR::plugins}"
+        },
+        "stores": [
+          {
+            "name": "FFRD",
+            "store_type": "S3",
+            "profile": "S3STORE",
+            "params": {
+                "root": "model-library/ffrd-trinity"
+            }
+          }
+        ],
+        "inputs": [
+        {
+          "name": "blocks.json",
+          "paths": {
+            "default": "conformance/simulations/blocks.json",
+            "testarray":"conformance/simulations/plugin/{ATTR::plugins[]}/event"
+          },
+          "store_name": "FFRD"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "seeds.json",
+          "paths": {
+            "default": "conformance/simulations/seeds.json"
+          },
+          "store_name": "FFRD"
+        }
+      ]
     }
   ]
 }

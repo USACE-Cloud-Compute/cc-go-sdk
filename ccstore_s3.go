@@ -178,20 +178,23 @@ func (ws *S3CcStore) PullObject(input PullObjectInput) error {
 }
 
 func BuildS3Config(profile string) filestore.S3FSConfig {
+	template := "%s_%s"
+	if profile == "" {
+		template = "%s%s"
+	}
 	awsconfig := filestore.S3FSConfig{
 		Credentials: filestore.S3FS_Static{
-			S3Id:  os.Getenv(fmt.Sprintf("%s_%s", profile, AwsAccessKeyId)),
-			S3Key: os.Getenv(fmt.Sprintf("%s_%s", profile, AwsSecretAccessKey)),
+			S3Id:  os.Getenv(fmt.Sprintf(template, profile, AwsAccessKeyId)),
+			S3Key: os.Getenv(fmt.Sprintf(template, profile, AwsSecretAccessKey)),
 		},
-		S3Region:    os.Getenv(fmt.Sprintf("%s_%s", profile, AwsDefaultRegion)),
-		S3Bucket:    os.Getenv(fmt.Sprintf("%s_%s", profile, AwsS3Bucket)),
-		AltEndpoint: os.Getenv(fmt.Sprintf("%s_%s", profile, AwsS3Endpoint)),
+		S3Region:    os.Getenv(fmt.Sprintf(template, profile, AwsDefaultRegion)),
+		S3Bucket:    os.Getenv(fmt.Sprintf(template, profile, AwsS3Bucket)),
+		AltEndpoint: os.Getenv(fmt.Sprintf(template, profile, AwsS3Endpoint)),
 		AwsOptions: []func(*config.LoadOptions) error{
 			config.WithRetryer(func() aws.Retryer {
 				return retry.AddWithMaxAttempts(retry.NewStandard(), 5)
 			}),
 		},
 	}
-
 	return awsconfig
 }
