@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/usace-cloud-compute/filesapi"
 )
@@ -321,29 +322,45 @@ func (im *IOManager) CopyFileToLocal(input CopyToLocalInput) error {
 		return err
 	}
 
-	relativePath := ds.Paths[input.PathKey]
+	relativePath, ok := ds.Paths[input.PathKey]
+	if !ok {
+		return fmt.Errorf("pathkey '%s' not found", input.PathKey)
+	}
 
-	if ifds, ok := store.Session.(FileDataStoreInterface); ok {
-		fullpath := ifds.GetAbsolutePath(relativePath)
-		fstore := ifds.GetFilestore()
-		_, err := fstore.GetObjectInfo(filesapi.PathConfig{Path: fullpath})
-		if err == nil {
-			//we have a file, copy it (this is a file copy so datapath==""):
-			return copyToLocal(fstore, fullpath, input.LocalPath)
-		} else {
-			//assume its a dir/prefix and attempt to walk
-			return fstore.Walk(filesapi.WalkInput{
-				Path: filesapi.PathConfig{Path: fullpath},
-			}, func(path string, file os.FileInfo) error {
-				return copyToLocal(fstore, file.Name(), input.LocalPath)
-			})
-		}
-	} else {
+	ifds, ok := store.Session.(FileDataStoreInterface)
+	if !ok {
 		return fmt.Errorf("data store %s is not a filestore", input.DsName)
 	}
+
+	fullpath := ifds.GetAbsolutePath(relativePath)
+	fstore := ifds.GetFilestore()
+
+	_, err = fstore.GetObjectInfo(filesapi.PathConfig{Path: fullpath})
+	if err == nil {
+		//file exists...copy it
+		return copyToLocal(fstore, fullpath, input.LocalPath, false)
+	}
+
+	//assume its a dir/prefix and attempt to walk
+	storeRoot := ""
+	if sr, ok := store.Parameters["root"]; ok {
+		if srstring, ok := sr.(string); ok {
+			storeRoot = strings.TrimLeft(srstring, "/")
+		}
+	}
+
+	//walk the directory structure
+	return fstore.Walk(filesapi.WalkInput{
+		Path: filesapi.PathConfig{Path: fullpath},
+	}, func(path string, file os.FileInfo) error {
+		f := file.Name()
+		rootPrefix := fmt.Sprintf("%s/%s", storeRoot, relativePath)
+		localPath := strings.Replace(f, rootPrefix, input.LocalPath, 1)
+		return copyToLocal(fstore, f, localPath, true)
+	})
 }
 
-func copyToLocal(fs filesapi.FileStore, remoteAbsolutePath string, localPath string) error {
+func copyToLocal(fs filesapi.FileStore, remoteAbsolutePath string, localPath string, isdir bool) error {
 	reader, err := fs.GetObject(filesapi.GetObjectInput{
 		Path: filesapi.PathConfig{Path: remoteAbsolutePath},
 	})
@@ -351,6 +368,14 @@ func copyToLocal(fs filesapi.FileStore, remoteAbsolutePath string, localPath str
 		return err
 	}
 	defer reader.Close()
+
+	if isdir {
+		localPath = filepath.Dir(localPath)
+	}
+	err = os.MkdirAll(localPath, 0755)
+	if err != nil {
+		return fmt.Errorf("failed to create local directory %s: %s", localPath, err)
+	}
 
 	localfile := fmt.Sprintf("%s/%s", localPath, filepath.Base(remoteAbsolutePath))
 	writer, err := os.Create(localfile)
@@ -421,7 +446,8 @@ func (im *IOManager) CopyFileToRemote(input CopyFileToRemoteInput) error {
 				Path: filesapi.PathConfig{Path: input.LocalPath},
 			}, func(path string, file os.FileInfo) error {
 				if !file.IsDir() {
-					fullRemoteFilePath := fmt.Sprintf("%s/%s", fullRemotePath, filepath.Base(path))
+					localRelativePath := strings.TrimPrefix(strings.TrimPrefix(path, input.LocalPath), "/")
+					fullRemoteFilePath := fmt.Sprintf("%s/%s", fullRemotePath, localRelativePath)
 					return writeFileToRemote(fs, path, fullRemoteFilePath)
 				}
 				return nil
