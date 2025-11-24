@@ -403,6 +403,7 @@ type CopyFileToRemoteInput struct {
 	RemoteDsName    string
 	DsPathKey       string
 	DsDataPathKey   string
+	TemplateVars    map[string]string
 }
 
 func (im *IOManager) CopyFileToRemote(input CopyFileToRemoteInput) error {
@@ -416,7 +417,11 @@ func (im *IOManager) CopyFileToRemote(input CopyFileToRemoteInput) error {
 		}
 		storeName = ds.StoreName
 		path = ds.Paths[input.DsPathKey]
+	}
 
+	for k, valStr := range input.TemplateVars {
+		varStr := fmt.Sprintf("{VAR::%s}", k)
+		path = strings.ReplaceAll(path, varStr, valStr)
 	}
 
 	store, err := im.GetStore(storeName)
