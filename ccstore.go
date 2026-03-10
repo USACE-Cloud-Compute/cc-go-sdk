@@ -65,14 +65,21 @@ type PullObjectInput struct {
 	FileExtension       string
 }
 
-func NewCcStore(manifestArgs ...string) (CcStore, error) {
+type CcStoreInput struct {
+	CcStoreProfile string
+	ManifestId     string
+	PayloadId      string
+}
+
+// func NewCcStore(ccStoreProfile string, manifestArgs ...string) (CcStore, error) {
+func NewCcStore(input *CcStoreInput) (CcStore, error) {
 	storeType := os.Getenv(CcStoreType)
 
 	switch StoreType(storeType) {
-	case FSB:
-		return NewFSBCcStore(manifestArgs...)
+	// case FSB:
+	// 	return NewFSBCcStore(manifestArgs...)
 	case FSS3, "": // Default to S3 if no store type specified
-		return NewS3CcStore(manifestArgs...)
+		return NewS3CcStore(input)
 	default:
 		return nil, fmt.Errorf("unsupported store type: %s", storeType)
 	}

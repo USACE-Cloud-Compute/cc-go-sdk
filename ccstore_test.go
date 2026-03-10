@@ -8,15 +8,15 @@ import (
 
 // Test constants
 const (
-	testFileName    = "test"
-	testFileExt     = "json"
-	testContent     = "test content for ccstore"
-	testManifestID  = "test-manifest-123"
-	testPayloadID   = "test-payload-123"
+	testFileName   = "test"
+	testFileExt    = "json"
+	testContent    = "test content for ccstore"
+	testManifestID = "test-manifest-123"
+	testPayloadID  = "test-payload-123"
 )
 
 func TestCcPushObject(t *testing.T) {
-	store, err := NewS3CcStore()
+	store, err := NewS3CcStore(nil)
 	if err != nil {
 		t.Skip("S3 store not available for testing:", err)
 	}
@@ -28,7 +28,7 @@ func TestCcPushObject(t *testing.T) {
 		ObjectState:          Memory,
 		Data:                 []byte(testContent),
 	}
-	
+
 	err = store.PutObject(poi)
 	if err != nil {
 		t.Skip("PutObject requires S3 credentials:", err)
@@ -36,7 +36,7 @@ func TestCcPushObject(t *testing.T) {
 }
 
 func TestCcPullObject(t *testing.T) {
-	store, err := NewS3CcStore()
+	store, err := NewS3CcStore(nil)
 	if err != nil {
 		t.Skip("S3 store not available for testing:", err)
 	}
@@ -52,7 +52,7 @@ func TestCcPullObject(t *testing.T) {
 		FileName:            testFileName,
 		FileExtension:       testFileExt,
 	}
-	
+
 	err = store.PullObject(poi)
 	if err != nil {
 		t.Skip("PullObject requires existing S3 data:", err)

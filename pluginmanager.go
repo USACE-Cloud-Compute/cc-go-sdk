@@ -152,8 +152,8 @@ func InitPluginManager() (*PluginManager, error) {
 	manager.EventIdentifier = os.Getenv(CcEventIdentifier)
 	manager.Logger = NewCcLogger(CcLoggerInput{manifestId, payloadId, nil})
 
-	// Create the store based on configuration
-	store, err := NewCcStore()
+	// use a nil input to create the store based on configuration in the env
+	store, err := NewCcStore(nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create store: %w", err)
 	}
