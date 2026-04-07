@@ -30,17 +30,25 @@ type S3CcStore struct {
 // NewCcStore produces a CcStore backed by an S3 bucket
 // if no arguments are supplied, the manifestid will get loaded from the environment
 // @TODO: make sure file operations use io and readers and stream chunks.  avoid large files in memory.
-func NewS3CcStore(manifestArgs ...string) (CcStore, error) {
+func NewS3CcStore(input *CcStoreInput) (CcStore, error) {
 	var manifestId string
 	var payloadId string
-	if len(manifestArgs) > 1 {
-		manifestId = manifestArgs[0]
-		payloadId = manifestArgs[1]
+	ccProfile := CcProfile
+	//1) store is created from arguments
+	//   used by cloudcompute WritePayload
+	//2) store is created from env vars
+	//   used by cc-go-sdk on initialization
+	if input != nil {
+		manifestId = input.ManifestId
+		payloadId = input.PayloadId
+		if input.CcStoreProfile != "" {
+			ccProfile = input.CcStoreProfile
+		}
 	} else {
 		manifestId = os.Getenv(CcManifestId)
 		payloadId = os.Getenv(CcPayloadId)
 	}
-	awsconfig := BuildS3Config(CcProfile)
+	awsconfig := BuildS3Config(ccProfile)
 	rootPath := os.Getenv(CcRootPath)
 	if rootPath == "" {
 		rootPath = RemoteRootPath //set to default
