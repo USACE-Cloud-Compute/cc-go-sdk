@@ -327,7 +327,7 @@ func (im *IOManager) CopyFileToLocal(input CopyToLocalInput) error {
 		return fmt.Errorf("pathkey '%s' not found", input.PathKey)
 	}
 
-	ifds, ok := store.Session.(FileDataStoreInterface)
+	ifds, ok := store.Session.(FileDataStore)
 	if !ok {
 		return fmt.Errorf("data store %s is not a filestore", input.DsName)
 	}
@@ -439,7 +439,7 @@ func (im *IOManager) CopyFileToRemote(input CopyFileToRemoteInput) error {
 		return err
 	}
 
-	if ifds, ok := store.Session.(FileDataStoreInterface); ok {
+	if ifds, ok := store.Session.(FileDataStore); ok {
 		fullRemotePath := ifds.GetAbsolutePath(path)
 		fs := ifds.GetFilestore()
 		if info.IsDir() {

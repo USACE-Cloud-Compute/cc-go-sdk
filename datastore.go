@@ -27,8 +27,8 @@ var DataStoreTypeRegistry = make(DataStoreTypeRegistryMap)
 
 func registerStoreTypes() {
 	//DataStoreTypeRegistry.Register(S3, S3DataStore{})
-	DataStoreTypeRegistry.Register(FSS3, FileDataStore[filestore.S3FS]{})
-	DataStoreTypeRegistry.Register(FSB, FileDataStore[filestore.BlockFS]{})
+	DataStoreTypeRegistry.Register(FSS3, FileDataStoreImpl[filestore.S3FS]{})
+	DataStoreTypeRegistry.Register(FSB, FileDataStoreImpl[filestore.BlockFS]{})
 
 }
 
