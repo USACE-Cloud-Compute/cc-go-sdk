@@ -14,9 +14,11 @@ import (
 type DataSourceIoType string
 
 const (
-	DataSourceInput  DataSourceIoType = "INPUT"
-	DataSourceOutput DataSourceIoType = "OUTPUT"
-	DataSourceAll    DataSourceIoType = "" //zero value == all
+	DataSourceInput    DataSourceIoType = "INPUT"
+	DataSourceOutput   DataSourceIoType = "OUTPUT"
+	DataSourceAll      DataSourceIoType = "" //zero value == all
+	mbconversion       int64            = 1024 * 1024
+	multipartThreshold int64            = 4000 //4GB...used for switching to multiport uploads for cloud stores like s3
 )
 
 type Payload struct {
@@ -465,6 +467,15 @@ func (im *IOManager) CopyFileToRemote(input CopyFileToRemoteInput) error {
 }
 
 func writeFileToRemote(fs filesapi.FileStore, localPath string, remoteAbsolutePath string) error {
+	fileInfo, err := os.Stat(localPath)
+	if err != nil {
+		return err
+	}
+
+	// Size() returns size in bytes
+	sizeInMb := fileInfo.Size() / mbconversion
+	useMultipart := sizeInMb > multipartThreshold
+
 	reader, err := os.Open(localPath)
 	if err != nil {
 		return err
@@ -474,7 +485,8 @@ func writeFileToRemote(fs filesapi.FileStore, localPath string, remoteAbsolutePa
 		Source: filesapi.ObjectSource{
 			Reader: reader,
 		},
-		Dest: filesapi.PathConfig{Path: remoteAbsolutePath},
+		Dest:     filesapi.PathConfig{Path: remoteAbsolutePath},
+		Mutipart: useMultipart,
 	})
 	return err
 }
