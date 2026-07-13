@@ -190,11 +190,24 @@ func BuildS3Config(profile string) filestore.S3FSConfig {
 	if profile == "" {
 		template = "%s%s"
 	}
-	awsconfig := filestore.S3FSConfig{
-		Credentials: filestore.S3FS_Static{
-			S3Id:  os.Getenv(fmt.Sprintf(template, profile, AwsAccessKeyId)),
+
+	awsStaticKey := os.Getenv(fmt.Sprintf(template, profile, AwsAccessKeyId))
+
+	var credentials any
+
+	if awsStaticKey != "" {
+		credentials = filestore.S3FS_Static{
+			S3Id:  awsStaticKey,
 			S3Key: os.Getenv(fmt.Sprintf(template, profile, AwsSecretAccessKey)),
-		},
+		}
+	} else {
+		credentials = filestore.S3FS_Attached{
+			Profile: os.Getenv(fmt.Sprintf(template, profile, AwsCredProfile)),
+		}
+	}
+
+	awsconfig := filestore.S3FSConfig{
+		Credentials: credentials,
 		S3Region:    os.Getenv(fmt.Sprintf(template, profile, AwsDefaultRegion)),
 		S3Bucket:    os.Getenv(fmt.Sprintf(template, profile, AwsS3Bucket)),
 		AltEndpoint: os.Getenv(fmt.Sprintf(template, profile, AwsS3Endpoint)),

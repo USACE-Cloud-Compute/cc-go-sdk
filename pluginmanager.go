@@ -22,6 +22,7 @@ const (
 	CcRootPath          = "CC_ROOT"
 	CcLogIdentifier     = "CC_LOG"
 	AwsAccessKeyId      = "AWS_ACCESS_KEY_ID"
+	AwsCredProfile      = "AWS_PROFILE"
 	AwsSecretAccessKey  = "AWS_SECRET_ACCESS_KEY"
 	AwsDefaultRegion    = "AWS_DEFAULT_REGION"
 	AwsS3Bucket         = "AWS_S3_BUCKET"
