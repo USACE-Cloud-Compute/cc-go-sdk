@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -342,6 +343,7 @@ func (im *IOManager) CopyFileToLocal(input CopyToLocalInput) error {
 		//file exists...copy it
 		return copyToLocal(fstore, fullpath, input.LocalPath, false)
 	}
+	log.Println("failed to get object info: %s.", err)
 
 	//assume its a dir/prefix and attempt to walk
 	storeRoot := ""
