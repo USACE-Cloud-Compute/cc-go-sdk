@@ -196,11 +196,13 @@ func BuildS3Config(profile string) filestore.S3FSConfig {
 	var credentials any
 
 	if awsStaticKey != "" {
+		log.Println("Connecting to S3 using Static Credentials")
 		credentials = filestore.S3FS_Static{
 			S3Id:  awsStaticKey,
 			S3Key: os.Getenv(fmt.Sprintf(template, profile, AwsSecretAccessKey)),
 		}
 	} else {
+		log.Println("Connecting to S3 using Attached or Default Credentials")
 		credentials = filestore.S3FS_Attached{
 			Profile: os.Getenv(fmt.Sprintf(template, profile, AwsCredProfile)),
 		}
