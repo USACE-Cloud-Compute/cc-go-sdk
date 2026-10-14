@@ -48,6 +48,7 @@ func NewS3CcStore(input *CcStoreInput) (CcStore, error) {
 		manifestId = os.Getenv(CcManifestId)
 		payloadId = os.Getenv(CcPayloadId)
 	}
+	log.Println("getting s3 config")
 	awsconfig := BuildS3Config(ccProfile)
 	rootPath := os.Getenv(CcRootPath)
 	if rootPath == "" {
