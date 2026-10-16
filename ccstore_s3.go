@@ -219,6 +219,7 @@ func BuildS3Config(profile string) filestore.S3FSConfig {
 				return retry.AddWithMaxAttempts(retry.NewStandard(), 5)
 			}),
 		},
+		AssumedRole: os.Getenv(fmt.Sprintf(template, profile, AwsS3AssumedRole)),
 	}
 	return awsconfig
 }
