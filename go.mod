@@ -41,7 +41,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-pointer v0.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/usace-cloud-compute/filesapi v0.0.0-20261016203154-3151deaf299f // indirect
+	github.com/usace-cloud-compute/filesapi v0.0.0-20261019120854-5c0e062d8f20 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20230525183740-e7c30c78aeb2 // indirect
 	golang.org/x/net v0.27.0 // indirect
