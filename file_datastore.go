@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 
 	filestore "github.com/usace-cloud-compute/filesapi"
 )
@@ -78,9 +77,6 @@ func (fds *FileDataStoreImpl[T]) Connect(ds DataStore) (any, error) {
 	switch ds.StoreType {
 	case FSS3:
 		awsconfig := BuildS3Config(ds.DsProfile)
-		log.Println("----------------")
-		log.Println(awsconfig)
-		log.Println("----------------")
 		fs, err := filestore.NewFileStore(awsconfig)
 		if err != nil {
 			return nil, err
