@@ -154,6 +154,8 @@ github.com/usace-cloud-compute/filesapi v0.0.0-20261016203154-3151deaf299f h1:Pf
 github.com/usace-cloud-compute/filesapi v0.0.0-20261016203154-3151deaf299f/go.mod h1:6iMo7JYrqbf0dfSVGqrAJfoVhi2hKJysD5o8mXi0XhI=
 github.com/usace-cloud-compute/filesapi v0.0.0-20261019120854-5c0e062d8f20 h1:O5/D11aejsBBal4z2v0efWlGuKAlHgu+P7+/9e1X7Fg=
 github.com/usace-cloud-compute/filesapi v0.0.0-20261019120854-5c0e062d8f20/go.mod h1:6iMo7JYrqbf0dfSVGqrAJfoVhi2hKJysD5o8mXi0XhI=
+github.com/usace-cloud-compute/filesapi v0.0.0-20261019130306-86cdead80864 h1:234gx6le67MDfKsY7Bju6qQ7PQwhGVnPqQ+99yxLLtg=
+github.com/usace-cloud-compute/filesapi v0.0.0-20261019130306-86cdead80864/go.mod h1:6iMo7JYrqbf0dfSVGqrAJfoVhi2hKJysD5o8mXi0XhI=
 github.com/usace/filesapi v0.0.0-20240105190612-7968d4f3fe61 h1:5XBnZbJhmbRfBfhUqMzqkRIOkzbEp6MhDKsj7SK7tIk=
 github.com/usace/filesapi v0.0.0-20240105190612-7968d4f3fe61/go.mod h1:n93SV2TkqTZQvaxEmraFCSMUDTbPVyc2uc8q+UTp9Q8=
 github.com/usace/filesapi v0.0.0-20240315200543-841da1a812a3 h1:P7gZPn+X0+qacIxzA+MRyDtzAN2kMopWKYWfytvt2iw=
