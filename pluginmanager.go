@@ -395,38 +395,91 @@ func pathsSubstitute(ds *DataSource, attr map[string]any) error {
 		return fmt.Errorf("invalid data source name substitution for %s", ds.Name)
 	}
 
-	//handle data source paths substitution
-	for k, p := range ds.Paths {
-		paths, err := parameterSubstitute(paramSubInput{
-			TemplateKey:                k,
-			Template:                   p,
-			Attributes:                 attr,
-			AllowAttributeSubstitution: true,
-		})
-		if err != nil {
-			return err
+	if len(ds.Paths) > 0 {
+		newPaths := make(map[string]string, len(ds.Paths))
+		for k, p := range ds.Paths {
+			paths, err := parameterSubstitute(paramSubInput{
+				TemplateKey:                k,
+				Template:                   p,
+				Attributes:                 attr,
+				AllowAttributeSubstitution: true,
+			})
+			if err != nil {
+				return err
+			}
+			maps.Copy(newPaths, paths)
 		}
-		delete(ds.Paths, k)
-		maps.Copy(ds.Paths, paths)
+		ds.Paths = newPaths
 	}
 
-	//handle data source data paths substitution
-	for k, p := range ds.DataPaths {
-		paths, err := parameterSubstitute(paramSubInput{
-			TemplateKey:                k,
-			Template:                   p,
-			Attributes:                 attr,
-			AllowAttributeSubstitution: true,
-		})
-		if err != nil {
-			return err
+	if len(ds.DataPaths) > 0 {
+		newDataPaths := make(map[string]string, len(ds.DataPaths))
+		for k, p := range ds.DataPaths {
+			datapaths, err := parameterSubstitute(paramSubInput{
+				TemplateKey:                k,
+				Template:                   p,
+				Attributes:                 attr,
+				AllowAttributeSubstitution: true,
+			})
+			if err != nil {
+				return err
+			}
+			maps.Copy(newDataPaths, datapaths)
 		}
-		delete(ds.Paths, k)
-		maps.Copy(ds.Paths, paths)
+		ds.DataPaths = newDataPaths
 	}
-
 	return nil
 }
+
+// func pathsSubstitute(ds *DataSource, attr map[string]any) error {
+// 	//handle data source name substitution
+// 	nameResult, err := parameterSubstitute(paramSubInput{
+// 		TemplateKey:                "name", //this is the data source name, so we will not allow inflating into multiple paths.  key doesn't matter here
+// 		Template:                   ds.Name,
+// 		Attributes:                 attr,
+// 		AllowAttributeSubstitution: true,
+// 	})
+// 	if err != nil {
+// 		return err
+// 	}
+// 	if nameout, ok := nameResult["name"]; ok {
+// 		ds.Name = nameout
+// 	} else {
+// 		return fmt.Errorf("invalid data source name substitution for %s", ds.Name)
+// 	}
+
+// 	//handle data source paths substitution
+// 	for k, p := range ds.Paths {
+// 		paths, err := parameterSubstitute(paramSubInput{
+// 			TemplateKey:                k,
+// 			Template:                   p,
+// 			Attributes:                 attr,
+// 			AllowAttributeSubstitution: true,
+// 		})
+// 		if err != nil {
+// 			return err
+// 		}
+// 		delete(ds.Paths, k)
+// 		maps.Copy(ds.Paths, paths)
+// 	}
+
+// 	//handle data source data paths substitution
+// 	for k, p := range ds.DataPaths {
+// 		datapaths, err := parameterSubstitute(paramSubInput{
+// 			TemplateKey:                k,
+// 			Template:                   p,
+// 			Attributes:                 attr,
+// 			AllowAttributeSubstitution: true,
+// 		})
+// 		if err != nil {
+// 			return err
+// 		}
+// 		delete(ds.DataPaths, k)
+// 		maps.Copy(ds.DataPaths, datapaths)
+// 	}
+
+// 	return nil
+// }
 
 func handleSliceSub[T any](val []T, pm *PluginManager, attrSub bool) []any {
 	newslice := []any{}
