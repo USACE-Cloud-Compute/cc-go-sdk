@@ -174,9 +174,9 @@ func (im *IOManager) SetParent(iom *IOManager) {
 // If not found locally and a parent IOManager is set, the search delegates recursively to the parent.
 // It returns an error if no matching store is found in the hierarchy.
 func (im *IOManager) GetStore(name string) (*DataStore, error) {
-	for _, store := range im.Stores {
+	for i, store := range im.Stores {
 		if store.Name == name {
-			return &store, nil
+			return &im.Stores[i], nil
 		}
 	}
 	if im.parent != nil {
