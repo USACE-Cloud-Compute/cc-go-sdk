@@ -30,6 +30,7 @@ const (
 	AwsS3ForcePathStyle = "S3_FORCE_PATH_STYLE"
 	AwsS3DisableSSL     = "S3_DISABLE_SSL"
 	AwsS3Endpoint       = "AWS_ENDPOINT"
+	AwsS3AssumedRole    = "AWS_S3_ASSUMED_ROLE"
 	FsbRootPath         = "FSB_ROOT_PATH"
 	ParmamSubEnv        = "ENV"
 	ParamSubAttr        = "ATTR"
