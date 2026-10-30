@@ -34,7 +34,7 @@ func registerStoreTypes() {
 
 type DataStore struct {
 	Name       string            `json:"name,omitempty" yaml:"name"`
-	ID         *uuid.UUID        `json:"id,omitempty" yaml:id omitempty`
+	ID         *uuid.UUID        `json:"id,omitempty" yaml:id,omitempty`
 	StoreType  StoreType         `json:"store_type,omitempty" yaml:"store_type"`
 	DsProfile  string            `json:"profile,omitempty" yaml:"profile"`
 	Parameters PayloadAttributes `json:"params,omitempty" yaml:"params"`
@@ -61,7 +61,7 @@ type StoreWriter interface {
 // or an empty string to ignore a prefix match.
 type DataSource struct {
 	Name      string            `json:"name,omitempty" yaml:"name"`
-	ID        *uuid.UUID        `json:"id,omitempty" yaml:id omitempty`
+	ID        *uuid.UUID        `json:"id,omitempty" yaml:id,omitempty`
 	Paths     map[string]string `json:"paths,omitempty" yaml:"paths"`
 	DataPaths map[string]string `json:"data_paths,omitempty" yaml:"data_paths"`
 	StoreName string            `json:"store_name,omitempty" yaml:"store_name"`

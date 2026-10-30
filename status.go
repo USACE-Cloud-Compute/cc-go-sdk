@@ -10,5 +10,5 @@ const (
 
 type StatusReport struct {
 	Status   Status `json:"status"`
-	Progress int    `json:"progress, omitempty"`
+	Progress int    `json:"progress,omitempty"`
 }
