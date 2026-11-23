@@ -19,20 +19,29 @@ type FSBCcStore struct {
 }
 
 // NewFSBCcStore creates a new FSB CcStore instance
-func NewFSBCcStore(manifestArgs ...string) (CcStore, error) {
+func NewFSBCcStore(input *CcStoreInput) (CcStore, error) {
+
 	var manifestId string
 	var payloadId string
-	if len(manifestArgs) > 1 {
-		manifestId = manifestArgs[0]
-		payloadId = manifestArgs[1]
+	ccProfile := CcProfile
+	//1) store is created from arguments
+	//   used by cloudcompute WritePayload
+	//2) store is created from env vars
+	//   used by cc-go-sdk on initialization
+	if input != nil {
+		manifestId = input.ManifestId
+		payloadId = input.PayloadId
+		if input.CcStoreProfile != "" {
+			ccProfile = input.CcStoreProfile
+		}
 	} else {
 		manifestId = os.Getenv(CcManifestId)
 		payloadId = os.Getenv(CcPayloadId)
 	}
 
-	rootPath := os.Getenv(FsbRootPath)
+	rootPath := os.Getenv(fmt.Sprintf("%s_%s", ccProfile, FsbRootPath))
 	if rootPath == "" {
-		rootPath = "/data" // default local root path
+		return nil, fmt.Errorf("a root path is required for a cc_store")
 	}
 
 	// Ensure the root directory exists

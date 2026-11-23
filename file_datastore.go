@@ -91,8 +91,16 @@ func (fds *FileDataStoreImpl[T]) Connect(ds DataStore) (any, error) {
 			return nil, errors.New("missing s3 root parameter.  cannot create the store")
 		}
 	case FSB:
-		//no need to connect for a file store
-		return nil, nil
+		fsbConfig := filestore.BlockFSConfig{}
+		fs, err := filestore.NewFileStore(fsbConfig)
+		if err != nil {
+			return nil, err
+		}
+		fsroot := ""
+		if root, ok := ds.Parameters[S3ROOT]; ok {
+			fsroot = root.(string)
+		}
+		return &FileDataStoreImpl[T]{fs, fsroot}, nil
 	}
 
 	//unsupported type
